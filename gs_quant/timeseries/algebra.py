@@ -810,7 +810,7 @@ def weighted_sum(series: List[pd.Series], weights: list) -> pd.Series:
             ),
         )
     )
-
+    pass
     # reindex inputs and calculate
     series = [s.reindex(cal) for s in series]
     weights = [pd.Series(w, index=cal) for w in weights]
