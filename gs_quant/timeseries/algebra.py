@@ -810,12 +810,18 @@ def weighted_sum(series: List[pd.Series], weights: list) -> pd.Series:
             ),
         )
     )
-    pass
 
-    # reindex inputs and calculate
-    series = [s.reindex(cal) for s in series]
-    weights = [pd.Series(w, index=cal) for w in weights]
-    return sum(series[i] * weights[i] for i in range(len(series))) / sum(weights)
+    # Batch reindex and multiply using numpy for efficiency.
+    # Create a (n_series, n_dates) matrix
+    series_arr = np.stack([s.reindex(cal, copy=False).values for s in series], axis=0)
+    weights_arr = np.array(weights, dtype=float)[:, None]  # shape (n_series, 1) for broadcasting
+
+    # Weighted sum: sum(w_i * x_i), then weighted average
+    weighted_sum_arr = np.sum(series_arr * weights_arr, axis=0)
+    total_weight = np.sum(weights_arr)
+
+    # Construct the return Series
+    return pd.Series(weighted_sum_arr / total_weight, index=cal)
 
 
 @plot_function
