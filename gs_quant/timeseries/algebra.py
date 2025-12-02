@@ -804,17 +804,21 @@ def weighted_sum(series: List[pd.Series], weights: list) -> pd.Series:
     cal = pd.DatetimeIndex(
         reduce(
             np.intersect1d,
-            (
-                curve.index
-                for curve in series
-            ),
+            (curve.index for curve in series),
         )
     )
-    pass
-    # reindex inputs and calculate
-    series = [s.reindex(cal) for s in series]
-    weights = [pd.Series(w, index=cal) for w in weights]
-    return sum(series[i] * weights[i] for i in range(len(series))) / sum(weights)
+
+    # Reindex inputs efficiently using DataFrame operations
+    df = pd.concat(series, axis=1)
+    df = df.reindex(cal)
+    weights_array = np.array(weights, dtype=float)
+
+    # Fast weighted sum using numpy for all rows at once
+    weighted_values = np.dot(df.values, weights_array)
+
+    sum_weights = np.sum(weights_array)
+    result = pd.Series(weighted_values / sum_weights, index=cal)
+    return result
 
 
 @plot_function
