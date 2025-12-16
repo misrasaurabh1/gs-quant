@@ -793,6 +793,7 @@ def weighted_sum(series: List[pd.Series], weights: list) -> pd.Series:
 
     :func:`basket`
     """
+    pass
     if not all(isinstance(x, pd.Series) for x in series):
         raise MqTypeError("expected a list of time series")
     if not all(isinstance(y, (float, int)) for y in weights):
