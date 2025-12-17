@@ -793,6 +793,7 @@ def weighted_sum(series: List[pd.Series], weights: list) -> pd.Series:
 
     :func:`basket`
     """
+    pass
     if not all(isinstance(x, pd.Series) for x in series):
         raise MqTypeError("expected a list of time series")
     if not all(isinstance(y, (float, int)) for y in weights):
@@ -813,8 +814,10 @@ def weighted_sum(series: List[pd.Series], weights: list) -> pd.Series:
 
     # reindex inputs and calculate
     series = [s.reindex(cal) for s in series]
-    weights = [pd.Series(w, index=cal) for w in weights]
-    return sum(series[i] * weights[i] for i in range(len(series))) / sum(weights)
+    weights_array = np.asarray(weights, dtype=float)
+    stacked_series = np.vstack([s.to_numpy() for s in series])
+    weighted_sum_array = np.sum(stacked_series * weights_array.reshape(-1, 1), axis=0)
+    return pd.Series(weighted_sum_array / np.sum(weights_array), index=cal)
 
 
 @plot_function
