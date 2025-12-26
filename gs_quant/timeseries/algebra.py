@@ -793,6 +793,7 @@ def weighted_sum(series: List[pd.Series], weights: list) -> pd.Series:
 
     :func:`basket`
     """
+    pass
     if not all(isinstance(x, pd.Series) for x in series):
         raise MqTypeError("expected a list of time series")
     if not all(isinstance(y, (float, int)) for y in weights):
@@ -801,20 +802,24 @@ def weighted_sum(series: List[pd.Series], weights: list) -> pd.Series:
         raise MqValueError("must have one weight for each time series")
 
     # for input series, get the intersection of their calendars
-    cal = pd.DatetimeIndex(
-        reduce(
-            np.intersect1d,
-            (
-                curve.index
-                for curve in series
-            ),
-        )
+    cal_arr = reduce(
+        np.intersect1d,
+        (curve.index.values for curve in series)
     )
+    cal = pd.DatetimeIndex(cal_arr)
 
-    # reindex inputs and calculate
-    series = [s.reindex(cal) for s in series]
-    weights = [pd.Series(w, index=cal) for w in weights]
-    return sum(series[i] * weights[i] for i in range(len(series))) / sum(weights)
+    # Use numpy for batch operations to avoid python-level iteration
+    # Prepare (n_series, n_dates) shape array for values and for weights
+    values_arr = np.array([s.reindex(cal).values for s in series], dtype=float)
+    weights_arr = np.array(weights, dtype=float).reshape(-1, 1)  # column vector
+
+    # Multiply via broadcasting, then sum along rows for weighted sum, sum weights for denominator
+    weighted_sum_arr = np.sum(values_arr * weights_arr, axis=0)
+    sum_weights = np.sum(weights_arr, axis=0)
+
+    # Build result Series
+    result = pd.Series(weighted_sum_arr / sum_weights, index=cal)
+    return result
 
 
 @plot_function
